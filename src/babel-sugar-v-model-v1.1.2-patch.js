@@ -1,12 +1,15 @@
-
 const autoImportVue = (t, path) => {
   const importSource = "vue";
   const imports = path.node.body.filter(t.isImportDeclaration);
   const imported = imports.find(node => node.source.value === importSource);
-  const autoImport = () => path.unshiftContainer(
+  const autoImport = () =>
+    path.unshiftContainer(
       "body",
-      t.importDeclaration([ t.importDefaultSpecifier(t.identifier("Vue")) ],
-                          t.stringLiteral(importSource)));
+      t.importDeclaration(
+        [t.importDefaultSpecifier(t.identifier("Vue"))],
+        t.stringLiteral(importSource)
+      )
+    );
   if (!imported) {
     autoImport();
     return;
@@ -19,28 +22,30 @@ const autoImportVue = (t, path) => {
   }
 };
 
-module.exports = ({types : t}) => {
+module.exports = ({ types: t }) => {
   return {
-    visitor : {
+    visitor: {
       Program(p) {
         p.traverse({
           "ObjectMethod|ObjectProperty"(path) {
-            if (path.node.key.name !== "setup")
-              return;
+            if (path.node.key.name !== "setup") return;
             path.traverse({
               JSXAttribute(path) {
                 const n = path.get("name");
-                const isInputOrModel = n.node.name === "on-input" ||
-                                       n.node.name === "on-change" ||
-                                       n.node.name === "model";
-                if (!isInputOrModel)
-                  return;
+                const isInputOrModel =
+                  n.node.name === "on-input" ||
+                  n.node.name === "on-change" ||
+                  n.node.name === "model";
+                if (!isInputOrModel) return;
                 path.traverse({
                   MemberExpression(path) {
                     const obj = path.get("object");
                     const prop = path.get("property");
-                    if (t.isThisExpression(obj) && t.isIdentifier(prop) &&
-                        prop.node.name === "$set") {
+                    if (
+                      t.isThisExpression(obj) &&
+                      t.isIdentifier(prop) &&
+                      prop.node.name === "$set"
+                    ) {
                       autoImportVue(t, p);
                       obj.replaceWith(t.identifier("Vue"));
                       prop.replaceWith(t.identifier("set"));
